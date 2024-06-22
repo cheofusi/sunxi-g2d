@@ -31,6 +31,9 @@
 #define V4L2_CID_SUNXI_G2D_IN_ALIGNMENT		(V4L2_CID_CUSTOM_BASE + 3)
 #define V4L2_CID_SUNXI_G2D_OUT_ALPHA_MODE	(V4L2_CID_CUSTOM_BASE + 4)
 #define V4L2_CID_SUNXI_G2D_OUT_ALIGNMENT	(V4L2_CID_CUSTOM_BASE + 5)
+/* Rectfill specific ctrls */
+#define V4L2_CID_SUNXI_G2D_RECTFILL_COLOR		(V4L2_CID_CUSTOM_BASE + 6)
+#define V4L2_CID_SUNXI_G2D_RECTFILL_COLOR_ALPHA	(V4L2_CID_CUSTOM_BASE + 7)
 
 /* 
  * TODO: Add all supported formats. For now only include formats that
@@ -49,8 +52,8 @@ static struct g2d_fmt g2d_supported_fmts[] = {
 #define DEF_IMG_W 800
 #define DEF_IMG_H 480
 #define DEF_PIX_FMT V4L2_PIX_FMT_XBGR32
-#define DEF_RECTFILL_COLOR ((1 << 24) | (255 << 16) | (1 << 8) | 0)
-#define DEF_RECTFILL_COLOR_ALPHA 255
+#define DEF_RECTFILL_COLOR 0xffff0100
+#define DEF_RECTFILL_COLOR_ALPHA 0xff
 
 #define MIN_SRC_BUFS 1
 #define MIN_DST_BUFS 1
@@ -112,6 +115,12 @@ static int g2d_s_ctrl(struct v4l2_ctrl *ctrl)
 		break;
 	case V4L2_CID_SUNXI_G2D_OUT_ALIGNMENT:
 		ctx->dst.alignment = ctrl->val;
+		break;
+	case V4L2_CID_SUNXI_G2D_RECTFILL_COLOR:
+		ctx->rectfill_color = ctrl->p_new.p_u32[0];
+		break;
+	case V4L2_CID_SUNXI_G2D_RECTFILL_COLOR_ALPHA:
+		ctx->rectfill_color_alpha = ctrl->p_new.p_u8[0];
 		break;
 	default:
 		return -EINVAL;
@@ -199,6 +208,28 @@ static const struct v4l2_ctrl_config g2d_ctrls[] = {
 		.max = 1 << 6, /* Arbitrary */
 		.def = 1,
 		.step = 1, /* not sufficient (must be power of 2), hence try_ctrl */
+	},
+	{
+		.ops = &g2d_ctrl_ops,
+		.id = V4L2_CID_SUNXI_G2D_RECTFILL_COLOR,
+		.type = V4L2_CTRL_TYPE_U32,
+		.name = "G2D Rectfill Color",
+		.min = 0,
+		.max = 0xffffffff,
+		.def = DEF_RECTFILL_COLOR,
+		.step = 1,
+		.dims = { 1 },
+	},
+	{
+		.ops = &g2d_ctrl_ops,
+		.id = V4L2_CID_SUNXI_G2D_RECTFILL_COLOR_ALPHA,
+		.type = V4L2_CTRL_TYPE_U8,
+		.name = "G2D Rectfill Color Alpha",
+		.min = 0,
+		.max = 0xff,
+		.def = DEF_RECTFILL_COLOR_ALPHA,
+		.step = 1,
+		.dims = { 1 },
 	},
 };
 
@@ -713,10 +744,6 @@ static int g2d_open(struct file *file)
 	/* default capture format */
 	ctx->dst = ctx->src;
 	ctx->src.sel.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-
-	/* default control values */
-	ctx->rectfill_color = DEF_RECTFILL_COLOR;
-	ctx->rectfill_color_alpha = DEF_RECTFILL_COLOR_ALPHA;
 
 	/** TODO: Remove this!!! Only used for testing rectfill operation
 	 *  without usersapce 
