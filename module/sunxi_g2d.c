@@ -915,6 +915,8 @@ static int g2d_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, g2d);
 
+	vb2_dma_contig_set_max_seg_size(g2d->dev, DMA_BIT_MASK(32));
+
 	pm_runtime_enable(g2d->dev);
 
 	return 0;
