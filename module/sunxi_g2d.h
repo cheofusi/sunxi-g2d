@@ -30,7 +30,13 @@ enum g2d_op {
 	G2D_BITBLT
 };
 
-/* Blend Layer alpha modes */
+/*
+ * Blend Layer alpha modes
+ * G2D_PIXEL_ALPHA: Each pixel carries its own alpha value
+ * G2D_GLOBAL_ALPHA: Each layer has an alpha value shared by all pixels
+ * in that layer
+ * G2D_MIXER_ALPHA: All pixels in all layers share a single alpha value
+ */
 enum g2d_alpha_bld_mode {
 	G2D_PIXEL_ALPHA,
 	G2D_GLOBAL_ALPHA,
@@ -52,7 +58,6 @@ struct g2d_frame {
 };
 
 struct sunxi_g2d {
-	// struct resource *mem;
 	void __iomem	*base;
 	int irq;
 	struct clk *mod_clk;

@@ -195,7 +195,7 @@ static const struct v4l2_ctrl_config g2d_ctrls[] = {
 		.type = V4L2_CTRL_TYPE_INTEGER,
 		.name = "G2D Input Alignment",
 		.min = 1,
-		.max = 1 << 6, /* Arbitrary */
+		.max = 64, /* Arbitrary */
 		.def = 1,
 		.step = 1, /* not sufficient (must be power of 2), hence try_ctrl */
 	},
@@ -205,7 +205,7 @@ static const struct v4l2_ctrl_config g2d_ctrls[] = {
 		.type = V4L2_CTRL_TYPE_INTEGER,
 		.name = "G2D Output Alignment",
 		.min = 1,
-		.max = 1 << 6, /* Arbitrary */
+		.max = 64, /* Arbitrary */
 		.def = 1,
 		.step = 1, /* not sufficient (must be power of 2), hence try_ctrl */
 	},
@@ -294,7 +294,6 @@ static void g2d_device_run(void *priv)
 
 irqreturn_t g2d_irq(int irq, void *data)
 {
-	pr_info("-------- Got g2d interrupt!!");
 	struct sunxi_g2d *g2d = data;
 	struct sunxi_g2d_ctx *ctx;
 	struct vb2_v4l2_buffer *src, *dst;
@@ -645,8 +644,7 @@ static void g2d_stop_streaming(struct vb2_queue *vq)
 static const struct vb2_ops g2d_qops = {
 	.queue_setup		= g2d_queue_setup,
 	.buf_prepare		= g2d_buf_prepare,
-	/* .buf_init			= g2d_buf_init, TODO: setup sg lists for USERPTR buffers */
-	.buf_queue		= g2d_buf_queue,
+	.buf_queue			= g2d_buf_queue,
 	.start_streaming	= g2d_start_streaming,
 	.stop_streaming		= g2d_stop_streaming,
 	.wait_prepare		= vb2_ops_wait_prepare,
@@ -660,7 +658,7 @@ static int g2d_queue_init(void *priv, struct vb2_queue *src_vq,
 	int ret;
 
 	src_vq->type = V4L2_BUF_TYPE_VIDEO_OUTPUT;
-	src_vq->io_modes = VB2_MMAP | VB2_USERPTR |VB2_DMABUF;
+	src_vq->io_modes = VB2_MMAP | VB2_USERPTR | VB2_DMABUF;
 	src_vq->drv_priv = ctx;
 	src_vq->buf_struct_size = sizeof(struct v4l2_m2m_buffer);
 	src_vq->min_buffers_needed = 1;
@@ -796,7 +794,7 @@ static int g2d_release(struct file *file)
 	v4l2_fh_exit(&ctx->fh);
 	v4l2_m2m_ctx_release(ctx->fh.m2m_ctx);
 
-	kfree(ctx); // ??
+	kfree(ctx);
 
 	mutex_unlock(&g2d->dev_mutex);
 
@@ -854,7 +852,6 @@ static int g2d_probe(struct platform_device *pdev)
 	g2d->base = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(g2d->base))
 		return PTR_ERR(g2d->base);
-	// base_addr = g2d->base; // TODO: remove
 
 	g2d->bus_clk = devm_clk_get(g2d->dev, "bus");
 	if (IS_ERR(g2d->bus_clk)) {
